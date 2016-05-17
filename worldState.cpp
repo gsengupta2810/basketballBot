@@ -28,7 +28,7 @@ namespace State
 	{
 		 if  ( event == EVENT_LBUTTONDOWN )
 		 {
-		 	cout<<x<<":"<<y<<":"<<" "<<temp.at<Vec3b>(x,y)[0]<<endl;
+		 	cout<<x<<":"<<y<<":"<<endl;
 		 	// colorCallbackPoints.push_back(Utils::Point3D<int> (img.at<Vec3b>(x,y)[0],img.at<Vec3b>(x,y)[1],img.at<Vec3b>(x,y)[2]));
 		 	// cout<<img.at<Vec3b>(x,y)[0]<<","<<img.at<Vec3b>(x,y)[1]<<","<<img.at<Vec3b>(x,y)[2]<<endl;
 		  }
@@ -43,7 +43,7 @@ namespace State
 	{
 		//Mat img1=(img).clone();
 		imshow("colorDetect",*img);
-		temp=img;
+		temp=*img;
 		setMouseCallback("colorDetect", MouseCallback, NULL);
 		return *img;
 	}
