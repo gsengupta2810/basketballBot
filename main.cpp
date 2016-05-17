@@ -9,8 +9,17 @@ using namespace State;
 using namespace Motion;
 using namespace Utils;
 
+
 int main()
 {
-
+	WorldState state;
+	motion mot(state);
+	Mat img=imread("./images/test.jpg",CV_LOAD_IMAGE_COLOR);
+	while(1)
+	{
+		state.update(&img);
+		if(waitKey(10)==32) break;
+	}
+	
 	return 0;
 }

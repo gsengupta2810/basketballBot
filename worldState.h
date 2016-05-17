@@ -19,8 +19,8 @@ namespace State
 	{
 		public:
 			Utils::Point2D<int> centerOfBasket;
-			void update(Mat);
-
+			void update(const Mat*);
+		
 			//***********predicates************** 
 			bool basketOutOfView;
 			bool basketToRight;
@@ -28,10 +28,13 @@ namespace State
 
 		protected:
 			std::vector<Utils::Point3D<int> > colorCallbackPoints;
-			void MouseCallback();
-			Mat filterImage(Mat);
-			Mat colorDetect(Mat);
-			void findDepth(Mat,std::vector<Utils::Point2D<int> >);
+			static void MouseCallback(int event, int x, int y, int flags, void * param);
+			void doMouseCallback(int,int,int,int);
+			Mat filterImage(Mat*);
+			Mat colorDetect(Mat*);
+			void findDepth(Mat*,std::vector<Utils::Point2D<int> >);
+		private:
+			Mat temp;		
 	};
 }
 

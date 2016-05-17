@@ -9,8 +9,8 @@ namespace Motion
 	{
 
 	}
-	void plan()  //
+	void motion::plan()  //
 	{
-
+		cout<<"plan working"<<endl;
 	}
 }

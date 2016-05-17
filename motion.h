@@ -12,9 +12,10 @@ namespace Motion
 	class motion : public WorldState
 	{
 		private:
-			motion(State::WorldState);
+			
 		public:
 			void plan();
+			motion(State::WorldState);
 
 	};
 }
