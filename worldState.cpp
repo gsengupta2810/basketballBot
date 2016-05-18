@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include "worldState.h"
+#include <utility>
 
 #define MEDIAN
 #define BOARDCOLORED
@@ -14,13 +15,14 @@ namespace State
 	Mat imageforcallbackrgb;
 	Mat imageforcallbackcolorchanged;
 	Utils::Point3D<int> point;
+	Utils::Point2D<int> pos;
 	bool mouseClicked;
-	std::vector<Utils::Point3D<int> > tempcolorCallbackPoints;
+	std::vector<std::pair<Utils::Point3D<int>,Utils::Point2D<int> > > tempcolorCallbackPoints;
 
 	void WorldState::update(const Mat* img)  //this function will update the world state on every iteration
 	{
 		imshow("WorldState::update",*img);
-		
+		FrameThresh=50;
 		//*******************color selection**********************
 		Mat img1=img->clone();
 		point.x=point.y=point.z=0;
@@ -35,7 +37,7 @@ namespace State
 			file.open("points.txt",fstream::out);
 			for (int i = 0; i < colorCallbackPoints.size(); ++i)
 			{
-				file<<colorCallbackPoints[i].x<<","<<colorCallbackPoints[i].y<<","<<colorCallbackPoints[i].z<<endl;
+				file<<colorCallbackPoints[i].first.x<<","<<colorCallbackPoints[i].first.y<<","<<colorCallbackPoints[i].first.z<<endl;
 			}
 			file.close();
 		}	
@@ -50,6 +52,7 @@ namespace State
 		
 		if(!colorCallbackPoints.empty())
 		{
+			createFrame();
 			Mat img2=img->clone();
 			int thresh_1,thresh_2,thresh_3;
 			namedWindow("color detected Binary",WINDOW_AUTOSIZE);
@@ -84,13 +87,13 @@ namespace State
 					switch(i)
 					{
 						case 0:
-							temp.push_back(colorCallbackPoints[j].x);
+							temp.push_back(colorCallbackPoints[j].first.x);
 							break;
 						case 1:
-							temp.push_back(colorCallbackPoints[j].y);
+							temp.push_back(colorCallbackPoints[j].first.y);
 							break;
 						case 2:
-							temp.push_back(colorCallbackPoints[j].z);
+							temp.push_back(colorCallbackPoints[j].first.z);
 							break;
 					}
 					
@@ -118,13 +121,13 @@ namespace State
 					switch(i)
 					{
 						case 0:
-							temp.push_back(colorCallbackPoints[j].x);
+							temp.push_back(colorCallbackPoints[j].first.x);
 							break;
 						case 1:
-							temp.push_back(colorCallbackPoints[j].y);
+							temp.push_back(colorCallbackPoints[j].first.y);
 							break;
 						case 2:
-							temp.push_back(colorCallbackPoints[j].z);
+							temp.push_back(colorCallbackPoints[j].first.z);
 							break;
 					}
 					sum+=temp[j];
@@ -195,11 +198,13 @@ namespace State
 	 			return;
 	 		}
 		 	#endif
-
+	 		pos.x=x;
+	 		pos.y=y;
 		 	point.x=(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[0];
 		 	point.y=(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[1];
 		 	point.z=(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[2];
-		 	tempcolorCallbackPoints.push_back(point);
+
+		 	tempcolorCallbackPoints.push_back(std::pair<Utils::Point3D<int>,Utils::Point2D<int> > (point,pos));
 		  }
 		  else if ( event == EVENT_MOUSEMOVE )
 	     {
@@ -248,9 +253,9 @@ namespace State
 		Mat binary((*img).rows,(*img).cols,CV_8UC1,Scalar(0));
 		changeColorModel(*img,&colorChangedImg);
 		imshow("huha",colorChangedImg);
-		for (int i = 0; i < (*img).rows; ++i)
+		for (int i = frameCorners.lt.y; i < frameCorners.lb.y; ++i)
 		{
-			for (int j = 0; j < (*img).cols; ++j)
+			for (int j = frameCorners.lt.x; j < frameCorners.rt.x; ++j)
 			{
 				if(abs(colorChangedImg.at<Vec3b>(i,j)[0]-centralcolors[0])<thresh_1 && abs(colorChangedImg.at<Vec3b>(i,j)[1]-centralcolors[1])<thresh_2 && abs(colorChangedImg.at<Vec3b>(i,j)[2]-centralcolors[2])<thresh_3)
 				{
@@ -259,6 +264,29 @@ namespace State
 			}
 		}
 		return binary;
+	}
+
+	void WorldState::createFrame(void)
+	{
+		int maxx=colorCallbackPoints[0].second.x,minx=colorCallbackPoints[0].second.x;
+		int maxy=colorCallbackPoints[0].second.y,miny=colorCallbackPoints[0].second.y;
+		for (int i = 0; i < colorCallbackPoints.size(); ++i)
+		{	
+			if(maxx<colorCallbackPoints[i].second.x) maxx=colorCallbackPoints[i].second.x;
+			if(minx>colorCallbackPoints[i].second.x) minx=colorCallbackPoints[i].second.x;
+
+			if(maxy<colorCallbackPoints[i].second.y) maxy=colorCallbackPoints[i].second.y;
+			if(miny>colorCallbackPoints[i].second.y) miny=colorCallbackPoints[i].second.y;
+		}
+		frameCorners.rb.x=frameCorners.rt.x=maxx+FrameThresh;
+		cout<<"rb.x,rt.x :"<<frameCorners.rb.x<<","<<frameCorners.rt.x<<endl;
+		frameCorners.rb.y=frameCorners.lb.y=maxy+FrameThresh;
+		cout<<"rb.y,lb.y :"<<frameCorners.rb.y<<","<<frameCorners.lb.y<<endl;
+		frameCorners.lb.x=frameCorners.lt.x=minx-FrameThresh;
+		cout<<"lb.x,lt.x :"<<frameCorners.lb.x<<","<<frameCorners.lt.x<<endl;
+		frameCorners.rt.y=frameCorners.lt.y=miny-FrameThresh;
+		cout<<"rt.y,lt.y :"<<frameCorners.rt.y<<","<<frameCorners.lt.y<<endl;
+
 	}
 
 	void WorldState::findDepth(Mat* img,std::vector<Utils::Point2D<int> > searchMatrix)   // finds depth only of the selected region
