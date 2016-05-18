@@ -28,6 +28,7 @@ namespace State
 
 		protected:
 			std::vector<Utils::Point3D<int> > colorCallbackPoints;
+			void setbool2true();
 			static void MouseCallback(int event, int x, int y, int flags, void * param);
 			void doMouseCallback(int,int,int,int);
 			Mat filterImage(Mat*);

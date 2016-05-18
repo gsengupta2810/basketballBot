@@ -1,8 +1,11 @@
 #include <iostream>
+#include <unistd.h>
 #include "worldState.h"
 
 #define MEDIAN
 #define BOARDCOLORED
+
+#include <fstream>
 
 using namespace std;
 
@@ -11,6 +14,8 @@ namespace State
 	Mat imageforcallbackrgb;
 	Mat imageforcallbackcolorchanged;
 	Utils::Point3D<int> point;
+	bool mouseClicked;
+	std::vector<Utils::Point3D<int> > tempcolorCallbackPoints;
 
 	void WorldState::update(const Mat* img)  //this function will update the world state on every iteration
 	{
@@ -18,34 +23,48 @@ namespace State
 		
 		//*******************color selection**********************
 		Mat img1=img->clone();
-		while(1)
+		point.x=point.y=point.z=0;
+		mouseClicked=false;
+		colorSelect(&img1);	
+		if(!colorCallbackPoints.empty())
 		{
-			colorSelect(&img1);
-			if(waitKey(10)>0)break;
-		}
-		//this arrangement is for still images
-		findcentralvalue();
-		cout<<"centralcolors: "<<centralcolors[0]<<","<<centralcolors[1]<<","<<centralcolors[2]<<endl;
-
-
-		//********************color detection*********************
-		// in the trackbars keep thresh_1 small and vary other two thresholds for best results
-
-		Mat img2=img->clone();
-		int thresh_1,thresh_2,thresh_3;
-		namedWindow("color detected Binary",WINDOW_AUTOSIZE);
-		createTrackbar("track_1","color detected Binary",&thresh_1,100);
-		createTrackbar("track_2","color detected Binary",&thresh_2,100);
-		createTrackbar("track_3","color detected Binary",&thresh_3,100);
-		while(1)
+			//this arrangement is for still images
+			findcentralvalue();
+			cout<<"centralcolors: "<<centralcolors[0]<<","<<centralcolors[1]<<","<<centralcolors[2]<<endl;
+			fstream file;
+			file.open("points.txt",fstream::out);
+			for (int i = 0; i < colorCallbackPoints.size(); ++i)
+			{
+				file<<colorCallbackPoints[i].x<<","<<colorCallbackPoints[i].y<<","<<colorCallbackPoints[i].z<<endl;
+			}
+			file.close();
+		}	
+		else 
 		{
-			Mat colorBinary=colorDetect(&img2,thresh_1,thresh_2,thresh_3);
-			imshow("color detected Binary",colorBinary);
-			if(waitKey(10)>0) break;	
+			cout<<"colorCallbackPoints is empty "<<endl;
+			return;
 		}
 		
-
-
+		//********************color detection*********************
+		// in the trackbars keep thresh_1 small and vary other two thresholds for best results
+		
+		if(!colorCallbackPoints.empty())
+		{
+			Mat img2=img->clone();
+			int thresh_1,thresh_2,thresh_3;
+			namedWindow("color detected Binary",WINDOW_AUTOSIZE);
+			createTrackbar("track_1","color detected Binary",&thresh_1,100);
+			createTrackbar("track_2","color detected Binary",&thresh_2,100);
+			createTrackbar("track_3","color detected Binary",&thresh_3,100);
+			while(1)
+			{
+				Mat colorBinary=colorDetect(&img2,thresh_1,thresh_2,thresh_3);
+				imshow("color detected Binary",colorBinary);
+				if(waitKey(10)>0) break;	
+			}
+		}
+		else cout<<"colorCallbackPoints is empty "<<endl;
+		
 	}
 	
 	bool myfunction (int i,int j) 
@@ -109,6 +128,7 @@ namespace State
 							break;
 					}
 					sum+=temp[j];
+
 				}
 				centralcolors[i]=sum/temp.size();	
 			}
@@ -142,29 +162,30 @@ namespace State
 
 	}
 
-    void WorldState::MouseCallback(int event, int x, int y, int flags, void * param)  //used to create a list of clicked points 
-	{
-	
-		WorldState *self = static_cast<WorldState*>(param);
-  		self->doMouseCallback(event, x, y, flags);
-	}
-
 	float variance(int three[])
 	{	
 		float mean=(three[0]+three[1]+three[2])/3;
 		return ((three[0]-mean)*(three[0]-mean)+(three[1]-mean)*(three[1]-mean)+(three[2]-mean)*(three[2]-mean))/3;
 	}
 
+	void WorldState::setbool2true()
+	{
+		cout<<"setting bool to true "<<endl;
+		mouseClicked=true;
+	}
+
 	void WorldState::doMouseCallback(int event, int x, int y, int flags)
 	{
 		 if  ( event == EVENT_LBUTTONDOWN )
 		 {
-		 	cout<<"changed model :"<<(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[0]<<":"<<(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[1]<<":"<<(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[2]<<endl;
+		 	//setbool2true();
+		 	mouseClicked=true;
+		 	//cout<<"returned"<<endl;
+		 	cout<<"mouse values : "<<(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[0]<<":"<<(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[1]<<":"<<(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[2]<<endl;
 		 	
-		 	//checing for grey noise
+		 	//******************checing for grey noise*****************
 		 	#ifdef BOARDCOLORED
 		 	int three[3];
-		 	//imshow("imageforcallbackrgb",imageforcallbackrgb);
 		 	three[0]=(int)imageforcallbackrgb.at<Vec3b>(y,x)[0];
 		 	three[1]=(int)imageforcallbackrgb.at<Vec3b>(y,x)[1];
 		 	three[2]=(int)imageforcallbackrgb.at<Vec3b>(y,x)[2];
@@ -178,12 +199,26 @@ namespace State
 		 	point.x=(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[0];
 		 	point.y=(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[1];
 		 	point.z=(int)imageforcallbackcolorchanged.at<Vec3b>(y,x)[2];
+		 	tempcolorCallbackPoints.push_back(point);
 		  }
+		  else if ( event == EVENT_MOUSEMOVE )
+	     {
+	     	cout<<"hovering"<<endl;
+	         return;
+	     }
 	}
 
-	Mat WorldState::filterImage(Mat* img)
-	{
 
+    void WorldState::MouseCallback(int event, int x, int y, int flags, void * param)  //used to create a list of clicked points 
+	{
+		WorldState *self = static_cast<WorldState*>(param);
+  		self->doMouseCallback(event, x, y, flags);
+  		
+	}
+
+	Mat WorldState::filterImage(Mat*)
+	{
+		cout<<"here "<<endl;
 	}
 
 	void WorldState::colorSelect(Mat* img)
@@ -191,11 +226,19 @@ namespace State
 		Mat img1=(img)->clone();
 		imshow("colorSelect",*img);
 		imageforcallbackrgb=(*img).clone();
-		cSpace=HLS;
+		cSpace=HSV;
 		changeColorModel(imageforcallbackrgb,&imageforcallbackcolorchanged);
-		//imshow("changed color",imageforcallbackcolorchanged);
 		setMouseCallback("colorSelect", MouseCallback, NULL);
-		colorCallbackPoints.push_back(point);
+		waitKey(0);
+		cout<<"mouse clicked :"<<mouseClicked<<","<<point.x<<","<<point.y<<","<<point.z<<endl;
+		if(mouseClicked==true)
+		{
+			for (int i = 0; i < tempcolorCallbackPoints.size(); ++i)
+			{
+				colorCallbackPoints.push_back(tempcolorCallbackPoints[i]);
+			}
+		}
+		
 	}
 
 	Mat WorldState::colorDetect(Mat* img,int thresh_1,int thresh_2,int thresh_3)
