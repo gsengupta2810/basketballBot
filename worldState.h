@@ -14,7 +14,7 @@
 namespace State
 {
 	using namespace cv;
-
+	using namespace std;
 	class WorldState
 	{
 		public:
@@ -31,10 +31,20 @@ namespace State
 			static void MouseCallback(int event, int x, int y, int flags, void * param);
 			void doMouseCallback(int,int,int,int);
 			Mat filterImage(Mat*);
-			Mat colorDetect(Mat*);
+			void colorSelect(Mat*);
+			Mat colorDetect(Mat*,int,int,int);
+			void changeColorModel(Mat,Mat*);
+			void findcentralvalue(void); 
 			void findDepth(Mat*,std::vector<Utils::Point2D<int> >);
 		private:
-			Mat temp;		
+			int centralcolors[3];
+			enum colorSpace
+			{
+				HSV,
+				HLS,
+				YCbCr
+			};	
+			colorSpace cSpace;
 	};
 }
 

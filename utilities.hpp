@@ -2,6 +2,7 @@
 #define UTILS
 
 #include <iostream>
+#include <math.h>
 
 namespace Utils
 {
@@ -21,6 +22,7 @@ namespace Utils
 		T y;
 		T z;
 	};
+
 }
 
 #endif
